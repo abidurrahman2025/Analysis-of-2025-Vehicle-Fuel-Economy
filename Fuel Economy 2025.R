@@ -5,7 +5,7 @@ if(!require(readxl)){install.packages("readxl")}
 library(readxl)
 
 # Load the data
-data <- readxl::read_excel("D://USF//LIS4273 F25//R programs//2025 car economy.xlsx", sheet = "FEguide")
+data <- readxl::read_excel("2025 car economy.xlsx", sheet = "FEguide")
 
 # Convert to data frame for base R operations
 df <- as.data.frame(data)
@@ -290,4 +290,5 @@ cor_displ_mpg <- cor(analysis_data$Eng_Displ, analysis_data$Comb_FE, use = "comp
 cor_displ_mpg
 
 # Reset plot parameters to default values
+
 par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1, oma = c(0, 0, 0, 0))
