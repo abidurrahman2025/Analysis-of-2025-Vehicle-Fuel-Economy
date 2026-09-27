@@ -31,23 +31,28 @@ Based on the research questions, I established two primary hypotheses for this a
 
 ### Hypothesis 1:
 
-**Null Hypothesis (H₀):**
+**Null Hypothesis (H₀)**
+
 There is no significant difference in combined fuel economy between turbocharged and naturally aspirated engines of similar displacement.
 
-**Alternative Hypothesis (H₁):**
+**Alternative Hypothesis (H₁)**
+
 Turbocharged engines have significantly better combined fuel economy than naturally aspirated engines of similar displacement.
 
-**Hypothesis 2:**
+**Hypothesis 2**
 
-**Null Hypothesis (H₀):**
+**Null Hypothesis (H₀)**
+
 There is no significant difference in fuel economy patterns between vehicles requiring premium fuel and those using regular fuel.
 
-**Alternative Hypothesis (H₁):**
+**Alternative Hypothesis (H₁)**
+
 Vehicles requiring premium fuel show different fuel economy patterns compared to vehicles using regular fuel.
 
 These hypotheses were tested using comprehensive statistical methods including t-tests, ANOVA, correlation analysis, and multiple regression modeling to control for potential confounding factors.
 
 **Research Methodology and Analysis**
+
 The analysis began with loading and preparing the dataset from the 2025 Fuel Economy Guide:
 
 <img width="1023" height="255" alt="1" src="https://github.com/user-attachments/assets/858db9ae-9057-40b4-bcc1-290a5e056405" />
@@ -89,7 +94,7 @@ The linear model revealed that after controlling for engine displacement, turboc
 
 The dataset was nearly balanced with 433 premium fuel vehicles (21.8 MPG combined) and 435 regular fuel vehicles (26.0 MPG combined). Regular fuel vehicles showed advantages across all three fuel economy measures.
 
-Visualization 2: Fuel Type Analysis
+**Visualization 2: Fuel Type Analysis**
 
 <img width="766" height="310" alt="10" src="https://github.com/user-attachments/assets/41ca7bd3-6389-4248-a9dd-4471c0805da3" />
 <img width="765" height="112" alt="11" src="https://github.com/user-attachments/assets/d0f93d02-9e20-40da-b123-83fc0f4fbf56" />
