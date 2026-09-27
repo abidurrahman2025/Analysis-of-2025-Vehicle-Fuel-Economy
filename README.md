@@ -39,7 +39,7 @@ There is no significant difference in combined fuel economy between turbocharged
 
 Turbocharged engines have significantly better combined fuel economy than naturally aspirated engines of similar displacement.
 
-**Hypothesis 2**
+### Hypothesis 2
 
 **Null Hypothesis (H₀)**
 
