@@ -31,23 +31,23 @@ Based on the research questions, I established two primary hypotheses for this a
 
 ### Hypothesis 1:
 
-### Null Hypothesis (H₀):
+**Null Hypothesis (H₀):**
 There is no significant difference in combined fuel economy between turbocharged and naturally aspirated engines of similar displacement.
 
-### Alternative Hypothesis (H₁):
+**Alternative Hypothesis (H₁):**
 Turbocharged engines have significantly better combined fuel economy than naturally aspirated engines of similar displacement.
 
-### Hypothesis 2:
+**Hypothesis 2:**
 
-### Null Hypothesis (H₀):
+**Null Hypothesis (H₀):**
 There is no significant difference in fuel economy patterns between vehicles requiring premium fuel and those using regular fuel.
 
-### Alternative Hypothesis (H₁):
+**Alternative Hypothesis (H₁):**
 Vehicles requiring premium fuel show different fuel economy patterns compared to vehicles using regular fuel.
 
 These hypotheses were tested using comprehensive statistical methods including t-tests, ANOVA, correlation analysis, and multiple regression modeling to control for potential confounding factors.
 
-## Research Methodology and Analysis
+**Research Methodology and Analysis**
 The analysis began with loading and preparing the dataset from the 2025 Fuel Economy Guide:
 
 <img width="1023" height="255" alt="1" src="https://github.com/user-attachments/assets/858db9ae-9057-40b4-bcc1-290a5e056405" />
@@ -63,7 +63,7 @@ The final analysis dataset contained 868 vehicles with 169 variables after creat
 
 The dataset contained 586 turbocharged vehicles averaging 22.8 MPG with 2.7L displacement and 282 naturally aspirated vehicles averaging 26.2 MPG with 3.5L displacement. The naturally aspirated vehicles showed greater variability in fuel economy (SD = 9.91 vs 4.64).
 
-### Visualization 1: Turbocharged vs Naturally Aspirated Comparison
+**Visualization 1: Turbocharged vs Naturally Aspirated Comparison**
 
 <img width="767" height="289" alt="5" src="https://github.com/user-attachments/assets/9fc12355-494d-4b4a-a55a-f5429470462b" />
 <img width="767" height="204" alt="6" src="https://github.com/user-attachments/assets/3c75309e-ab0b-4b8d-a7d1-979e0e3877ea" />
@@ -71,7 +71,7 @@ The dataset contained 586 turbocharged vehicles averaging 22.8 MPG with 2.7L dis
 
 In the Hypothesis 1 Visualization, the boxplot comparison showed naturally aspirated engines with both higher median values and greater variability in fuel economy. Turbocharged vehicles clustered in a relatively normal distribution around 20-25 MPG, while naturally aspirated engines exhibited a pronounced bimodal distribution with concentrations in both high-efficiency (small engines achieving 35+ MPG) and low-efficiency ranges (large engines below 20 MPG). The scatter plot showed that turbocharged engines (red points) predominantly occupying the medium displacement range (2-3L) with moderate efficiency, while naturally aspirated engines (blue points) demonstrated both extremely efficient small engines and inefficient large engines, visually explaining why the overall mean comparison might be misleading.
 
-Statistical Tests for Hypothesis 1
+**Statistical Tests for Hypothesis 1**
 
 <img width="764" height="201" alt="7" src="https://github.com/user-attachments/assets/238fd57b-0561-4d33-ad7a-43adea0f4679" />
 
@@ -81,9 +81,9 @@ The t-test showed a statistically significant difference (p = 6.43e-08) with nat
 
 The linear model revealed that after controlling for engine displacement, turbocharged engines actually showed 7.06 MPG lower fuel economy than naturally aspirated engines. Engine displacement had a strong negative effect (-4.65 MPG per liter). The model explained 59.8% of the variance in fuel economy.
 
-Hypothesis 2 Analysis: Premium vs Regular Fuel Vehicles
+**Hypothesis 2 Analysis: Premium vs Regular Fuel Vehicles**
 
-Descriptive Statistics
+**Descriptive Statistics**
 
 <img width="768" height="300" alt="9" src="https://github.com/user-attachments/assets/6c038013-4c20-49be-a83b-e3f4ed38d9d2" />
 
@@ -96,7 +96,8 @@ Visualization 2: Fuel Type Analysis
 <img width="530" height="457" alt="hypothesis-2" src="https://github.com/user-attachments/assets/1df6ac95-bc2c-4cc5-b3c7-79af3b020d12" />
 
 Hypothesis 2 Visualizations through the triple boxplot arrangement demonstrated consistent superiority of regular fuel vehicles across all three fuel economy measures. The nearly identical sample sizes (433 premium vs 435 regular) shown in the information panel strengthened the statistical validity of these comparisons. The consistent pattern across combined, city, and highway measures suggested a systematic difference rather than measurement artifact.
-Statistical Tests for Hypothesis 2
+
+**Statistical Tests for Hypothesis 2**
 
 <img width="767" height="254" alt="12" src="https://github.com/user-attachments/assets/c0830ef2-6004-4768-a7bd-1294ef04b8f5" />
 <img width="766" height="171" alt="13" src="https://github.com/user-attachments/assets/92f24718-2dd8-4cf2-8a3c-d85afefe8a53" />
@@ -104,7 +105,7 @@ Statistical Tests for Hypothesis 2
 
 All three t-tests showed statistically significant differences (p < 0.001) with regular fuel vehicles demonstrating superior fuel economy across all measures: 4.21 MPG higher for combined, 4.86 MPG for city, and 2.92 MPG for highway driving.
 
-Additional Comprehensive Analyses
+**Additional Comprehensive Analyses**
 
 <img width="767" height="269" alt="15" src="https://github.com/user-attachments/assets/029a86c5-3bd0-47f1-ab21-925dd572ecf7" />
 <img width="664" height="664" alt="scatterplot-matrix-of-key-variables" src="https://github.com/user-attachments/assets/6c522d8c-956f-4baa-9f00-2fd98807d970" />
@@ -121,16 +122,16 @@ The two-way ANOVA revealed significant main effects for both fuel type and aspir
 
 Displacement Category Analysis through the bar plot showed a nuanced nature of the turbocharging effect. The visualization showed that the natural aspiration advantage was most dramatic in smaller engine categories (37.6 vs 26.7 MPG in <2L category) and diminished in larger categories, suggesting that turbocharging technology might be more beneficial for larger engines where the efficiency penalty is reduced.
 
-Final Comprehensive Model and Diagnostics
+**Final Comprehensive Model and Diagnostics**
 
 <img width="767" height="348" alt="19" src="https://github.com/user-attachments/assets/0a83cb40-c9d7-4fbf-aa52-4f047725d333" />
 
 Insights from final comprehensive model :
-    Turbocharged engines showed 6.30 MPG lower fuel economy after controlling for other factors
-    Engine displacement remained strongly negative (-4.06 MPG per liter)
-    Front-wheel drive vehicles showed 2.88 MPG advantage over all-wheel drive
-    Fuel type became non-significant (p = 0.648) when controlling for other vehicle characteristics
-    The model explained 63.4% of the variance in fuel economy
+- Turbocharged engines showed 6.30 MPG lower fuel economy after controlling for other factors
+- Engine displacement remained strongly negative (-4.06 MPG per liter)
+- Front-wheel drive vehicles showed 2.88 MPG advantage over all-wheel drive
+- Fuel type became non-significant (p = 0.648) when controlling for other vehicle characteristics
+- The model explained 63.4% of the variance in fuel economy
 
 <img width="768" height="306" alt="20" src="https://github.com/user-attachments/assets/162bbb2c-3489-4f5e-8561-f73b847938e6" />
 <img width="766" height="236" alt="21-1" src="https://github.com/user-attachments/assets/94c00fb4-ccbf-4cb8-b00e-9091f259a3b4" />
