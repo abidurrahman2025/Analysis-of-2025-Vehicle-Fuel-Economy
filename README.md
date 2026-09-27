@@ -29,7 +29,7 @@ I used the 2025 fuel economy dataset from US Department of Energy. I will invest
 
 Based on the research questions, I established two primary hypotheses for this analysis:
 
-### Hypothesis 1:
+### Hypothesis 1
 
 **Null Hypothesis (H₀)**
 
