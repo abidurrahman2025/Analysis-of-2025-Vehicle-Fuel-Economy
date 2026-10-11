@@ -1,294 +1,359 @@
-# Install packages if required
-if(!require(readxl)){install.packages("readxl")}
+# Hypothesis Establishment and Research Framework
 
-# Load required libraries
-library(readxl)
+I used the 2025 fuel economy dataset from US Department of Energy. I will investigate on two research questions: Do turbocharged engines provide significantly better fuel economy compared to naturally aspirated engines of similar displacement in 2025 model year vehicles? Do vehicles requiring premium fuel demonstrate different fuel economy patterns compared to those using regular fuel in the 2025 model year?
 
-# Load the data
-data <- readxl::read_excel("2025 car economy.xlsx", sheet = "FEguide")
+Based on the research questions, I established two primary hypotheses for this analysis:
 
-# Convert to data frame for base R operations
-df <- as.data.frame(data)
+## Hypothesis 1:
 
-# Basic data exploration - display dimensions and column names
-dim(df)
-head(names(df), 10)
+**Null Hypothesis (H₀):**
+There is no significant difference in combined fuel economy between turbocharged and naturally aspirated engines of similar displacement.
 
-# Select and clean relevant columns for analysis - only 2025 model year
-analysis_data <- df[df$`Model Year` == 2025, ]
+**Alternative Hypothesis (H₁):**
+Turbocharged engines have significantly better combined fuel economy than naturally aspirated engines of similar displacement.
 
-# Extract relevant columns and convert to proper numeric types
-analysis_data$Eng_Displ <- as.numeric(analysis_data$`Eng Displ`)
-analysis_data$Comb_FE <- as.numeric(analysis_data$`Comb FE (Guide) - Conventional Fuel`)
-analysis_data$City_FE <- as.numeric(analysis_data$`City FE (Guide) - Conventional Fuel`)
-analysis_data$Hwy_FE <- as.numeric(analysis_data$`Hwy FE (Guide) - Conventional Fuel`)
+## Hypothesis 2:
 
-# Create categorical variables for analysis
-analysis_data$is_turbocharged <- ifelse(
-  grepl("Turbo", analysis_data$`Air Aspiration Method Desc`), 
-  "Turbocharged", 
-  "Naturally Aspirated"
-)
+**Null Hypothesis (H₀):**
+There is no significant difference in fuel economy patterns between vehicles requiring premium fuel and those using regular fuel.
 
-analysis_data$fuel_type <- ifelse(
-  grepl("Premium", analysis_data$`Fuel Usage Desc - Conventional Fuel`), 
-  "Premium", 
-  "Regular"
-)
+**Alternative Hypothesis (H₁):**
+Vehicles requiring premium fuel show different fuel economy patterns compared to vehicles using regular fuel.
 
-analysis_data$drive_type <- ifelse(
-  grepl("All Wheel", analysis_data$`Drive Desc`), "AWD",
-  ifelse(grepl("Front", analysis_data$`Drive Desc`), "FWD",
-         ifelse(grepl("Rear", analysis_data$`Drive Desc`), "RWD", "Other"))
-)
+These hypotheses were tested using comprehensive statistical methods including t-tests, ANOVA, correlation analysis, and multiple regression modeling to control for potential confounding factors.
 
-# Remove rows with missing data in key analysis variables
-analysis_data <- analysis_data[!is.na(analysis_data$Eng_Displ) & 
-                                 !is.na(analysis_data$Comb_FE), ]
+## Research Methodology and Analysis
 
-# Display clean dataset dimensions
-dim(analysis_data)
+The analysis was done in Python (Jupyter Notebook) and began with loading and preparing the dataset from the 2025 Fuel Economy Guide, downloaded directly from FuelEconomy.gov:
 
-# HYPOTHESIS 1 ANALYSIS: Turbocharged vs Naturally Aspirated engines
+```python
+import io
+import zipfile
+import urllib.request
 
-# Split data by aspiration type for comparison
-turbo_data <- analysis_data[analysis_data$is_turbocharged == "Turbocharged", ]
-na_data <- analysis_data[analysis_data$is_turbocharged == "Naturally Aspirated", ]
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from scipy import stats
+import statsmodels.formula.api as smf
+from statsmodels.stats.anova import anova_lm
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
-# Display summary statistics for both groups
-nrow(turbo_data)
-mean(turbo_data$Comb_FE, na.rm = TRUE)
-sd(turbo_data$Comb_FE, na.rm = TRUE)
-mean(turbo_data$Eng_Displ, na.rm = TRUE)
+URL = "https://www.fueleconomy.gov/feg/epadata/25data.zip"
 
-nrow(na_data)
-mean(na_data$Comb_FE, na.rm = TRUE)
-sd(na_data$Comb_FE, na.rm = TRUE)
-mean(na_data$Eng_Displ, na.rm = TRUE)
+req = urllib.request.Request(URL, headers={"User-Agent": "Mozilla/5.0"})
+with urllib.request.urlopen(req) as resp:
+    zf = zipfile.ZipFile(io.BytesIO(resp.read()))
 
-# PLOT SECTION 1: Turbocharged vs Naturally Aspirated
+xlsx_name = [n for n in zf.namelist() if n.lower().endswith(".xlsx")][0]
+df = pd.read_excel(io.BytesIO(zf.read(xlsx_name)), sheet_name="FEguide")
 
-par(mfrow = c(2, 2), mar = c(5, 4, 4, 2) + 0.1, oma = c(0, 0, 2, 0))
+print(df.shape)
+print(list(df.columns[:10]))
+```
 
-# Boxplot comparing fuel economy by aspiration type
-boxplot(Comb_FE ~ is_turbocharged, data = analysis_data,
-        main = "Combined Fuel Economy\nby Aspiration Type",
-        xlab = "Aspiration Type", ylab = "Combined MPG",
-        col = c("lightblue", "lightgreen"),
-        cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
+The dataset contained 868 vehicles with 162 variables each. I then filtered for 2025 model year vehicles and created analysis variables:
 
-# Histogram of fuel economy for turbocharged vehicles
-hist(turbo_data$Comb_FE, main = "Turbocharged Vehicles",
-     xlab = "Combined MPG", ylab = "Frequency",
-     col = "lightblue", breaks = 15,
-     cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
+```python
+# Only 2025 model year
+data = df[df["Model Year"] == 2025].copy()
 
-# Histogram of fuel economy for naturally aspirated vehicles
-hist(na_data$Comb_FE, main = "Naturally Aspirated Vehicles",
-     xlab = "Combined MPG", ylab = "Frequency",
-     col = "lightgreen", breaks = 15,
-     cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
+# Numeric columns
+data["Eng_Displ"] = pd.to_numeric(data["Eng Displ"], errors="coerce")
+data["Comb_FE"] = pd.to_numeric(data["Comb FE (Guide) - Conventional Fuel"], errors="coerce")
+data["City_FE"] = pd.to_numeric(data["City FE (Guide) - Conventional Fuel"], errors="coerce")
+data["Hwy_FE"] = pd.to_numeric(data["Hwy FE (Guide) - Conventional Fuel"], errors="coerce")
 
-# Scatter plot showing relationship between displacement and MPG
-plot(analysis_data$Eng_Displ, analysis_data$Comb_FE,
-     col = ifelse(analysis_data$is_turbocharged == "Turbocharged", "red", "blue"),
-     pch = 16, 
-     main = "Engine Displacement vs Combined MPG",
-     xlab = "Engine Displacement (L)", ylab = "Combined MPG",
-     cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
-legend("topright", legend = c("Turbocharged", "Naturally Aspirated"),
-       col = c("red", "blue"), pch = 16, cex = 0.7)
+# Categorical variables
+data["is_turbocharged"] = np.where(
+    data["Air Aspiration Method Desc"].str.contains("Turbo", na=False),
+    "Turbocharged", "Naturally Aspirated")
 
-title("Hypothesis 1: Turbocharged vs Naturally Aspirated Engines", outer = TRUE)
+data["fuel_type"] = np.where(
+    data["Fuel Usage Desc - Conventional Fuel"].str.contains("Premium", na=False),
+    "Premium", "Regular")
 
-# Statistical Test 1: Independent t-test comparing MPG by aspiration type
-t_test_result <- t.test(Comb_FE ~ is_turbocharged, data = analysis_data)
-t_test_result
+drive = data["Drive Desc"]
+data["drive_type"] = np.select(
+    [drive.str.contains("All Wheel", na=False),
+     drive.str.contains("Front", na=False),
+     drive.str.contains("Rear", na=False)],
+    ["AWD", "FWD", "RWD"], default="Other")
 
-# Statistical Test 2: Linear model controlling for engine displacement
-lm_model1 <- lm(Comb_FE ~ is_turbocharged + Eng_Displ, data = analysis_data)
-summary(lm_model1)
+# Drop rows missing key variables
+data = data.dropna(subset=["Eng_Displ", "Comb_FE"])
+print(data.shape)
+```
 
-# HYPOTHESIS 2 ANALYSIS: Premium vs Regular fuel
+The final analysis dataset contained 868 vehicles with 169 variables after creating additional analysis columns.
 
-# Split data by fuel type for comparison
-premium_data <- analysis_data[analysis_data$fuel_type == "Premium", ]
-regular_data <- analysis_data[analysis_data$fuel_type == "Regular", ]
+```python
+turbo_data = data[data["is_turbocharged"] == "Turbocharged"]
+na_data = data[data["is_turbocharged"] == "Naturally Aspirated"]
 
-# Display summary statistics for both fuel types
-nrow(premium_data)
-mean(premium_data$Comb_FE, na.rm = TRUE)
-mean(premium_data$City_FE, na.rm = TRUE)
-mean(premium_data$Hwy_FE, na.rm = TRUE)
+for name, d in [("Turbocharged", turbo_data), ("Naturally Aspirated", na_data)]:
+    print(f"{name}: n={len(d)}, mean MPG={d['Comb_FE'].mean():.3f}, "
+          f"sd={d['Comb_FE'].std():.3f}, mean displ={d['Eng_Displ'].mean():.3f}")
+```
 
-nrow(regular_data)
-mean(regular_data$Comb_FE, na.rm = TRUE)
-mean(regular_data$City_FE, na.rm = TRUE)
-mean(regular_data$Hwy_FE, na.rm = TRUE)
+The dataset contained 586 turbocharged vehicles averaging 22.8 MPG with 2.7L displacement and 282 naturally aspirated vehicles averaging 26.2 MPG with 3.5L displacement. The naturally aspirated vehicles showed greater variability in fuel economy (SD = 9.91 vs 4.64).
 
-# PLOT SECTION 2: Fuel Type Analysis
+## Visualization 1: Turbocharged vs Naturally Aspirated Comparison
 
-par(mfrow = c(2, 2), mar = c(5, 4, 4, 2) + 0.1, oma = c(0, 0, 2, 0))
+```python
+fig, axes = plt.subplots(2, 2, figsize=(11, 8))
 
-# Boxplot for combined MPG by fuel type
-boxplot(Comb_FE ~ fuel_type, data = analysis_data,
-        main = "Combined MPG by Fuel Type",
-        xlab = "Fuel Type", ylab = "Combined MPG",
-        col = c("lightcoral", "lightyellow"),
-        cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
+# Boxplot
+bp = axes[0, 0].boxplot([na_data["Comb_FE"], turbo_data["Comb_FE"]],
+                        tick_labels=["Naturally Aspirated", "Turbocharged"],
+                        patch_artist=True)
+for patch, c in zip(bp["boxes"], ["lightblue", "lightgreen"]):
+    patch.set_facecolor(c)
+axes[0, 0].set(title="Combined Fuel Economy\nby Aspiration Type",
+               xlabel="Aspiration Type", ylabel="Combined MPG")
 
-# Boxplot for city MPG by fuel type
-boxplot(City_FE ~ fuel_type, data = analysis_data,
-        main = "City MPG by Fuel Type",
-        xlab = "Fuel Type", ylab = "City MPG",
-        col = c("lightcoral", "lightyellow"),
-        cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
+# Histograms
+axes[0, 1].hist(turbo_data["Comb_FE"], bins=15, color="lightblue", edgecolor="black")
+axes[0, 1].set(title="Turbocharged Vehicles", xlabel="Combined MPG", ylabel="Frequency")
 
-# Boxplot for highway MPG by fuel type
-boxplot(Hwy_FE ~ fuel_type, data = analysis_data,
-        main = "Highway MPG by Fuel Type",
-        xlab = "Fuel Type", ylab = "Highway MPG",
-        col = c("lightcoral", "lightyellow"),
-        cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
+axes[1, 0].hist(na_data["Comb_FE"], bins=15, color="lightgreen", edgecolor="black")
+axes[1, 0].set(title="Naturally Aspirated Vehicles", xlabel="Combined MPG", ylabel="Frequency")
 
-# Information panel showing sample sizes
-plot(1, type = "n", axes = FALSE, xlab = "", ylab = "",
-     main = "Fuel Type Comparison Summary", cex.main = 0.9)
-text(1, 1, paste("Premium: n =", nrow(premium_data), 
-                 "\nRegular: n =", nrow(regular_data)),
-     cex = 0.8)
+# Scatter
+colors = np.where(data["is_turbocharged"] == "Turbocharged", "red", "blue")
+axes[1, 1].scatter(data["Eng_Displ"], data["Comb_FE"], c=colors, s=15)
+axes[1, 1].scatter([], [], c="red", label="Turbocharged")
+axes[1, 1].scatter([], [], c="blue", label="Naturally Aspirated")
+axes[1, 1].legend(loc="upper right", fontsize=8)
+axes[1, 1].set(title="Engine Displacement vs Combined MPG",
+               xlabel="Engine Displacement (L)", ylabel="Combined MPG")
 
-title("Hypothesis 2: Premium vs Regular Fuel Vehicles", outer = TRUE)
+fig.suptitle("Hypothesis 1: Turbocharged vs Naturally Aspirated Engines")
+plt.tight_layout()
+plt.show()
+```
 
-# Statistical tests for different MPG measures by fuel type
-t_comb <- t.test(Comb_FE ~ fuel_type, data = analysis_data)
-t_city <- t.test(City_FE ~ fuel_type, data = analysis_data)
-t_hwy <- t.test(Hwy_FE ~ fuel_type, data = analysis_data)
+In the Hypothesis 1 Visualization, the boxplot comparison showed naturally aspirated engines with both higher median values and greater variability in fuel economy. Turbocharged vehicles clustered in a relatively normal distribution around 20-25 MPG, while naturally aspirated engines exhibited a pronounced bimodal distribution with concentrations in both high-efficiency (small engines achieving 35+ MPG) and low-efficiency ranges (large engines below 20 MPG). The scatter plot showed that turbocharged engines (red points) predominantly occupying the medium displacement range (2-3L) with moderate efficiency, while naturally aspirated engines (blue points) demonstrated both extremely efficient small engines and inefficient large engines, visually explaining why the overall mean comparison might be misleading.
 
-# Display t-test results
-t_comb
-t_city
-t_hwy
+## Statistical Tests for Hypothesis 1
 
+```python
+# Welch t-test (unequal variances)
+def welch(df, value, group):
+    levels = sorted(df[group].unique())
+    a = df.loc[df[group] == levels[0], value]
+    b = df.loc[df[group] == levels[1], value]
+    res = stats.ttest_ind(a, b, equal_var=False)
+    ci = res.confidence_interval()
+    print(f"{value} by {group}: {levels[0]} (mean={a.mean():.3f}) vs {levels[1]} (mean={b.mean():.3f})")
+    print(f"  t = {res.statistic:.4f}, df = {res.df:.2f}, p = {res.pvalue:.4g}")
+    print(f"  95% CI of difference: [{ci.low:.3f}, {ci.high:.3f}]\n")
+    return res
 
-# CORRELATION ANALYSIS
-# Calculate correlation matrix between key continuous variables
-cor_vars <- analysis_data[, c("Comb_FE", "Eng_Displ", "City_FE", "Hwy_FE")]
-cor_matrix <- cor(cor_vars, use = "complete.obs")
-cor_matrix
+t_test_result = welch(data, "Comb_FE", "is_turbocharged")
 
-# PLOT SECTION 3: Correlation Matrix Visualization
+# Linear model controlling for displacement
+lm_model1 = smf.ols("Comb_FE ~ C(is_turbocharged) + Eng_Displ", data=data).fit()
+print(lm_model1.summary())
+```
 
-par(mar = c(5, 4, 4, 2) + 0.1)
-# Create scatterplot matrix to visualize relationships
-pairs(cor_vars, 
-      main = "Scatterplot Matrix of Key Variables",
-      cex.main = 0.9, cex.labels = 0.8, cex.axis = 0.7,
-      gap = 0.5)  # Add gap between plots for better spacing
+The t-test showed a statistically significant difference (p = 6.43e-08) with naturally aspirated engines averaging 3.43 MPG higher than turbocharged engines.
 
-# TWO-WAY ANOVA: Testing interaction between fuel type and aspiration type
-anova_model <- aov(Comb_FE ~ fuel_type * is_turbocharged, data = analysis_data)
-summary(anova_model)
+The linear model revealed that after controlling for engine displacement, turbocharged engines actually showed 7.06 MPG lower fuel economy than naturally aspirated engines. Engine displacement had a strong negative effect (-4.65 MPG per liter). The model explained 59.8% of the variance in fuel economy.
 
-# DISPLACEMENT CATEGORY ANALYSIS
-# Create displacement categories for stratified analysis
-analysis_data$displ_category <- cut(analysis_data$Eng_Displ,
-                                    breaks = c(0, 2, 3, 4, max(analysis_data$Eng_Displ, na.rm = TRUE)),
-                                    labels = c("Small (<2L)", "Medium (2-3L)", "Large (3-4L)", "Very Large (>4L)"))
+## Hypothesis 2 Analysis: Premium vs Regular Fuel Vehicles
 
-# Calculate mean MPG by displacement category and aspiration type
-displ_summary <- aggregate(Comb_FE ~ displ_category + is_turbocharged, 
-                           data = analysis_data, 
-                           function(x) c(mean = mean(x), count = length(x)))
-displ_summary
+### Descriptive Statistics
 
-# PLOT SECTION 4: Displacement Categories
+```python
+premium_data = data[data["fuel_type"] == "Premium"]
+regular_data = data[data["fuel_type"] == "Regular"]
 
-# Extra bottom margin for rotated category labels
-par(mar = c(8, 4, 4, 2) + 0.1)
+for name, d in [("Premium", premium_data), ("Regular", regular_data)]:
+    print(f"{name}: n={len(d)}, Comb={d['Comb_FE'].mean():.3f}, "
+          f"City={d['City_FE'].mean():.3f}, Hwy={d['Hwy_FE'].mean():.3f}")
+```
 
-# Calculate means for bar plot
-means <- aggregate(Comb_FE ~ displ_category + is_turbocharged, data = analysis_data, mean)
-bar_names <- paste(means$displ_category, "\n", means$is_turbocharged)
+The dataset was nearly balanced with 433 premium fuel vehicles (21.8 MPG combined) and 435 regular fuel vehicles (26.0 MPG combined). Regular fuel vehicles showed advantages across all three fuel economy measures.
 
-# Create bar plot showing MPG by displacement and aspiration type
-barplot(means$Comb_FE, 
-        names.arg = bar_names,
-        las = 2,  # Rotate labels vertically
-        col = c("lightblue", "lightgreen"),
-        main = "Average MPG by Displacement and Aspiration Type",
-        ylab = "Combined MPG",
-        cex.main = 0.9, cex.names = 0.7, cex.axis = 0.8,
-        ylim = c(0, max(means$Comb_FE) * 1.1))
+## Visualization 2: Fuel Type Analysis
 
-# FINAL COMPREHENSIVE ANALYSIS
-# Build comprehensive linear model with all key predictors
-final_model <- lm(Comb_FE ~ fuel_type + is_turbocharged + Eng_Displ + drive_type,
-                  data = analysis_data)
-summary(final_model)
+```python
+fig, axes = plt.subplots(2, 2, figsize=(11, 8))
 
-# PLOT SECTION 5: Custom Model Diagnostic Plots (without formula in title)
+def fuel_box(ax, col, title, ylabel):
+    bp = ax.boxplot([premium_data[col].dropna(), regular_data[col].dropna()],
+                    tick_labels=["Premium", "Regular"], patch_artist=True)
+    for patch, c in zip(bp["boxes"], ["lightcoral", "lightyellow"]):
+        patch.set_facecolor(c)
+    ax.set(title=title, xlabel="Fuel Type", ylabel=ylabel)
 
-par(mfrow = c(2, 2), mar = c(4, 4, 3, 2) + 0.1, oma = c(0, 0, 2, 0))
+fuel_box(axes[0, 0], "Comb_FE", "Combined MPG by Fuel Type", "Combined MPG")
+fuel_box(axes[0, 1], "City_FE", "City MPG by Fuel Type", "City MPG")
+fuel_box(axes[1, 0], "Hwy_FE", "Highway MPG by Fuel Type", "Highway MPG")
 
-# Get residuals and fitted values for custom plots
-residuals <- resid(final_model)
-fitted <- fitted(final_model)
-std_residuals <- rstandard(final_model)
+# Info panel
+axes[1, 1].axis("off")
+axes[1, 1].set_title("Fuel Type Comparison Summary")
+axes[1, 1].text(0.5, 0.5, f"Premium: n = {len(premium_data)}\nRegular: n = {len(regular_data)}",
+                ha="center", va="center")
 
-# Plot 1: Residuals vs Fitted
-plot(fitted, residuals, 
-     main = "Residuals vs Fitted Values",
-     xlab = "Fitted Values", ylab = "Residuals",
-     pch = 16, col = "blue", cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
-abline(h = 0, col = "red", lty = 2)
-lines(lowess(fitted, residuals), col = "darkgreen", lwd = 2)
+fig.suptitle("Hypothesis 2: Premium vs Regular Fuel Vehicles")
+plt.tight_layout()
+plt.show()
+```
 
-# Plot 2: Normal Q-Q Plot
-qqnorm(std_residuals, 
-       main = "Normal Q-Q Plot",
-       xlab = "Theoretical Quantiles", ylab = "Standardized Residuals",
-       pch = 16, col = "blue", cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
-qqline(std_residuals, col = "red", lwd = 2)
+Hypothesis 2 Visualizations through the triple boxplot arrangement demonstrated consistent superiority of regular fuel vehicles across all three fuel economy measures. The nearly identical sample sizes (433 premium vs 435 regular) shown in the information panel strengthened the statistical validity of these comparisons. The consistent pattern across combined, city, and highway measures suggested a systematic difference rather than measurement artifact.
 
-# Plot 3: Scale-Location Plot
-sqrt_abs_resid <- sqrt(abs(std_residuals))
-plot(fitted, sqrt_abs_resid,
-     main = "Scale-Location Plot",
-     xlab = "Fitted Values", ylab = "sqrt(|Standardized Residuals|)",
-     pch = 16, col = "blue", cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
-lines(lowess(fitted, sqrt_abs_resid), col = "darkgreen", lwd = 2)
+## Statistical Tests for Hypothesis 2
 
-# Plot 4: Residuals vs Leverage
-leverage <- hatvalues(final_model)
-plot(leverage, std_residuals,
-     main = "Residuals vs Leverage",
-     xlab = "Leverage", ylab = "Standardized Residuals",
-     pch = 16, col = "blue", cex.main = 0.9, cex.lab = 0.8, cex.axis = 0.8)
-abline(h = 0, col = "red", lty = 2)
+```python
+t_comb = welch(data, "Comb_FE", "fuel_type")
+t_city = welch(data, "City_FE", "fuel_type")
+t_hwy = welch(data, "Hwy_FE", "fuel_type")
+```
 
-title("Final Model Diagnostic Plots", outer = TRUE)
+All three t-tests showed statistically significant differences (p < 0.001) with regular fuel vehicles demonstrating superior fuel economy across all measures: 4.21 MPG higher for combined, 4.86 MPG for city, and 2.92 MPG for highway driving.
 
-# Calculate and display key comparative metrics for summary
-mean_turbo <- mean(turbo_data$Comb_FE)
-mean_turbo
-mean_na <- mean(na_data$Comb_FE)
-mean_na
-mean_premium <- mean(premium_data$Comb_FE)
-mean_premium
-mean_regular <- mean(regular_data$Comb_FE)
-mean_regular
-diff_turbo_na <- mean_turbo - mean_na
-diff_turbo_na
-diff_premium_regular <- mean_premium - mean_regular
-diff_premium_regular
-p_value_turbo <- t_test_result$p.value
-p_value_turbo
-p_value_fuel <- t_comb$p.value
-p_value_fuel
-cor_displ_mpg <- cor(analysis_data$Eng_Displ, analysis_data$Comb_FE, use = "complete.obs")
-cor_displ_mpg
+## Additional Comprehensive Analyses
 
-# Reset plot parameters to default values
+```python
+cor_vars = data[["Comb_FE", "Eng_Displ", "City_FE", "Hwy_FE"]]
+cor_matrix = cor_vars.corr()
+print(cor_matrix)
 
-par(mfrow = c(1, 1), mar = c(5, 4, 4, 2) + 0.1, oma = c(0, 0, 0, 0))
+pd.plotting.scatter_matrix(cor_vars, figsize=(9, 9), s=8, alpha=0.6, diagonal="hist")
+plt.suptitle("Scatterplot Matrix of Key Variables")
+plt.show()
+```
+
+Correlation Matrix Visualization provided crucial validation of measurement consistency and revealed fundamental engineering relationships. The extremely high correlations between different fuel economy measures (r = 0.986 between combined and city MPG) confirmed internal consistency, while the clear negative relationship between engine displacement and all efficiency measures visually confirmed the fundamental physics of automotive efficiency.
+
+```python
+anova_model = smf.ols("Comb_FE ~ C(fuel_type) * C(is_turbocharged)", data=data).fit()
+print(anova_lm(anova_model, typ=1))  # sequential sums of squares
+```
+
+The two-way ANOVA revealed significant main effects for both fuel type and aspiration type, plus a significant interaction effect (p = 1.43e-12), indicating the relationship between fuel type and MPG differs depending on whether the engine is turbocharged.
+
+```python
+data["displ_category"] = pd.cut(
+    data["Eng_Displ"],
+    bins=[0, 2, 3, 4, data["Eng_Displ"].max()],
+    labels=["Small (<2L)", "Medium (2-3L)", "Large (3-4L)", "Very Large (>4L)"])
+
+displ_summary = (data.groupby(["displ_category", "is_turbocharged"], observed=True)["Comb_FE"]
+                     .agg(mean="mean", count="count")
+                     .reset_index())
+print(displ_summary)
+
+labels = displ_summary["displ_category"].astype(str) + "\n" + displ_summary["is_turbocharged"]
+bar_colors = ["lightblue", "lightgreen"] * (len(displ_summary) // 2 + 1)
+
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.bar(range(len(displ_summary)), displ_summary["mean"],
+       color=bar_colors[:len(displ_summary)], edgecolor="black")
+ax.set_xticks(range(len(displ_summary)))
+ax.set_xticklabels(labels, rotation=90, fontsize=8)
+ax.set(title="Average MPG by Displacement and Aspiration Type", ylabel="Combined MPG",
+       ylim=(0, displ_summary["mean"].max() * 1.1))
+plt.tight_layout()
+plt.show()
+```
+
+Displacement Category Analysis through the bar plot showed a nuanced nature of the turbocharging effect. The visualization showed that the natural aspiration advantage was most dramatic in smaller engine categories (37.6 vs 26.7 MPG in <2L category) and diminished in larger categories, suggesting that turbocharging technology might be more beneficial for larger engines where the efficiency penalty is reduced.
+
+## Final Comprehensive Model and Diagnostics
+
+```python
+final_model = smf.ols(
+    "Comb_FE ~ C(fuel_type) + C(is_turbocharged) + Eng_Displ + C(drive_type)",
+    data=data).fit()
+print(final_model.summary())
+```
+
+Insights from final comprehensive model :
+
+    Turbocharged engines showed 6.30 MPG lower fuel economy after controlling for other factors
+    Engine displacement remained strongly negative (-4.06 MPG per liter)
+    Front-wheel drive vehicles showed 2.88 MPG advantage over all-wheel drive
+    Fuel type became non-significant (p = 0.648) when controlling for other vehicle characteristics
+    The model explained 63.4% of the variance in fuel economy
+
+```python
+resid = final_model.resid
+fitted = final_model.fittedvalues
+infl = final_model.get_influence()
+std_resid = infl.resid_studentized_internal
+leverage = infl.hat_matrix_diag
+
+fig, axes = plt.subplots(2, 2, figsize=(11, 8))
+
+# Residuals vs Fitted
+ax = axes[0, 0]
+ax.scatter(fitted, resid, s=12, color="blue")
+ax.axhline(0, color="red", ls="--")
+sm_line = lowess(resid, fitted)
+ax.plot(sm_line[:, 0], sm_line[:, 1], color="darkgreen", lw=2)
+ax.set(title="Residuals vs Fitted Values", xlabel="Fitted Values", ylabel="Residuals")
+
+# Normal Q-Q
+ax = axes[0, 1]
+(osm, osr), _ = stats.probplot(std_resid, dist="norm")
+ax.scatter(osm, osr, s=12, color="blue")
+x1, x2 = stats.norm.ppf([0.25, 0.75])
+y1, y2 = np.quantile(std_resid, [0.25, 0.75])
+slope = (y2 - y1) / (x2 - x1)
+ax.plot(osm, y1 + slope * (osm - x1), color="red", lw=2)
+ax.set(title="Normal Q-Q Plot", xlabel="Theoretical Quantiles", ylabel="Standardized Residuals")
+
+# Scale-Location
+ax = axes[1, 0]
+sqrt_abs = np.sqrt(np.abs(std_resid))
+ax.scatter(fitted, sqrt_abs, s=12, color="blue")
+sm_line = lowess(sqrt_abs, fitted)
+ax.plot(sm_line[:, 0], sm_line[:, 1], color="darkgreen", lw=2)
+ax.set(title="Scale-Location Plot", xlabel="Fitted Values",
+       ylabel="sqrt(|Standardized Residuals|)")
+
+# Residuals vs Leverage
+ax = axes[1, 1]
+ax.scatter(leverage, std_resid, s=12, color="blue")
+ax.axhline(0, color="red", ls="--")
+ax.set(title="Residuals vs Leverage", xlabel="Leverage", ylabel="Standardized Residuals")
+
+fig.suptitle("Final Model Diagnostic Plots")
+plt.tight_layout()
+plt.show()
+```
+
+Model Diagnostic Plots provided essential validation of the regression assumptions. The relatively random scatter in the residuals vs fitted plot, the approximately linear pattern in the Q-Q plot, and the absence of extreme leverage points all supported the validity of the multivariate conclusions.
+
+```python
+mean_turbo = turbo_data["Comb_FE"].mean()
+mean_na = na_data["Comb_FE"].mean()
+mean_premium = premium_data["Comb_FE"].mean()
+mean_regular = regular_data["Comb_FE"].mean()
+
+print(f"Turbo - NA difference:        {mean_turbo - mean_na:.3f}")
+print(f"Premium - Regular difference: {mean_premium - mean_regular:.3f}")
+print(f"p-value (turbo vs NA):        {t_test_result.pvalue:.4g}")
+print(f"p-value (premium vs regular): {t_comb.pvalue:.4g}")
+print(f"Correlation (displacement, MPG): {data['Eng_Displ'].corr(data['Comb_FE']):.3f}")
+```
+
+The metrics quantify the central findings: naturally aspirated engines achieve 3.43 MPG higher fuel economy than turbocharged engines (p = 6.43e-08), regular fuel vehicles show 4.21 MPG advantage over premium fuel vehicles in bivariate analysis (p = 1.94e-19), and engine displacement shows a strong negative correlation with fuel economy (r = -0.629).
+
+## Research Abstract and Conclusion
+
+This comprehensive analysis of 2025 model year vehicle fuel economy yields definitive conclusions regarding the two research hypotheses. For Hypothesis 1, we must reject the alternative hypothesis that turbocharged engines provide better fuel economy. The evidence strongly supports the opposite conclusion: naturally aspirated engines demonstrate significantly higher fuel economy both in simple comparisons (26.21 vs 22.78 MPG, p = 6.43e-08) and after controlling for engine displacement (7.06 MPG disadvantage for turbocharged engines, p < 2e-16). The visualization analysis revealed that this relationship is most pronounced in smaller engine categories, suggesting that the efficiency benefits of natural aspiration are particularly valuable in compact vehicle applications.
+
+For Hypothesis 2, we find mixed evidence. While initial bivariate comparisons show substantial differences favoring regular fuel vehicles (25.99 vs 21.79 MPG, p < 1.94e-19), these differences become statistically non-significant in multivariate models that control for engine displacement, turbocharging, and drive type (p = 0.648). This pattern suggests that the apparent fuel type effect is largely confounded by other vehicle characteristics, particularly that premium fuel requirements are associated with vehicles that have other characteristics (larger engines, turbocharging) that independently reduce fuel economy.
+
+The strong negative correlation between engine displacement and fuel economy (r = -0.629) remains a fundamental relationship in the 2025 vehicle fleet, while drive type emerges as a significant factor with front-wheel drive vehicles showing approximately 2.9 MPG advantage over all-wheel drive configurations. The comprehensive visualization approach proved essential for understanding the complex relationships and provided context that pure numerical analysis could not capture.
+
+These findings have important implications for both automotive engineering and consumer decision-making, suggesting that the pursuit of turbocharging for fuel efficiency goals may be misguided, and that fuel type requirements should be considered in the broader context of overall vehicle design rather than as independent efficiency factors.
+
+## References
+
+U.S. Department of Energy, & U.S. Environmental Protection Agency. (2025). 2025 Fuel Economy Data [Data set]. FuelEconomy.gov. https://www.fueleconomy.gov/feg/download.shtml
